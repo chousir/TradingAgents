@@ -50,6 +50,18 @@ MODEL_OPTIONS: ProviderModeOptions = {
             ("Gemini 2.5 Flash - Balanced, stable", "gemini-2.5-flash"),
         ],
     },
+    "gemini_cli": {
+        "quick": [
+            ("Gemini 2.5 Flash - Balanced, stable", "gemini-2.5-flash"),
+            ("Gemini 2.5 Flash Lite - Fast, low-cost", "gemini-2.5-flash-lite"),
+            ("Gemini 2.5 Pro - High quality (may hit capacity limits)", "gemini-2.5-pro"),
+        ],
+        "deep": [
+            ("Gemini 2.5 Pro - Stable pro model", "gemini-2.5-pro"),
+            ("Gemini 2.5 Flash - Balanced, stable", "gemini-2.5-flash"),
+            ("Gemini 2.5 Flash Lite - Fast, low-cost", "gemini-2.5-flash-lite"),
+        ],
+    },
     "xai": {
         "quick": [
             ("Grok 4.1 Fast (Non-Reasoning) - Speed optimized, 2M ctx", "grok-4-1-fast-non-reasoning"),
