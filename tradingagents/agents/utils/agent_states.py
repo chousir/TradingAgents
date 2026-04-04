@@ -55,6 +55,9 @@ class AgentState(MessagesState):
 
     # research step
     market_report: Annotated[str, "Report from the Market Analyst"]
+    latest_close_price: Annotated[float, "Latest available close price from market data"]
+    latest_close_date: Annotated[str, "Date for the latest available close price"]
+    price_structure: Annotated[dict, "Market price structure summary including support and resistance zones"]
     sentiment_report: Annotated[str, "Report from the Social Media Analyst"]
     news_report: Annotated[
         str, "Report from the News Researcher of current world affairs"

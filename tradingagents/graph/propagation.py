@@ -48,6 +48,9 @@ class Propagator:
                 }
             ),
             "market_report": "",
+            "latest_close_price": None,
+            "latest_close_date": "",
+            "price_structure": {},
             "fundamentals_report": "",
             "sentiment_report": "",
             "news_report": "",

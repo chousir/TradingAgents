@@ -12,7 +12,7 @@ def create_portfolio_manager(llm, memory):
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
         sentiment_report = state["sentiment_report"]
-        trader_plan = state["investment_plan"]
+        trader_plan = state.get("trader_investment_plan", state.get("investment_plan", "No plan provided"))
 
         curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
         past_memories = memory.get_memories(curr_situation, n_matches=2)
@@ -40,8 +40,13 @@ def create_portfolio_manager(llm, memory):
 
 **Required Output Structure:**
 1. **Rating**: State one of Buy / Overweight / Hold / Underweight / Sell.
-2. **Executive Summary**: A concise action plan covering entry strategy, position sizing, key risk levels, and time horizon.
-3. **Investment Thesis**: Detailed reasoning anchored in the analysts' debate and past reflections.
+2. **Trade Execution Plan**: You MUST output the following exact metrics based on the debate and the Trader's proposal:
+    - **Entry Strategy (Price)**: Specify exact price range or current market price.
+    - **Scaling / Tranche Strategy**: For example, Entry 1: 50% at $X, Entry 2: 50% at $Y.
+    - **Take Profit Targets**: Specify exact price targets, can be multiple levels.
+    - **Stop Loss**: Specify exact price to invalidate the thesis.
+3. **Executive Summary**: A concise action plan covering position sizing, key risk levels, and time horizon.
+4. **Investment Thesis**: Detailed reasoning anchored in the analysts' debate and past reflections, justifying why these specific price levels were chosen.
 
 ---
 
