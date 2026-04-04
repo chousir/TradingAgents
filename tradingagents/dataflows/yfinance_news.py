@@ -122,10 +122,12 @@ def get_global_news_yfinance(
     """
     # Search queries for macro/global news
     search_queries = [
-        "stock market economy",
         "Federal Reserve interest rates",
         "inflation economic outlook",
-        "global markets trading",
+        "stock market economy",
+        "geopolitical tensions conflict",
+        "oil prices energy crisis",
+        "currency exchange rates",
     ]
 
     all_news = []
@@ -135,7 +137,7 @@ def get_global_news_yfinance(
         for query in search_queries:
             search = yf_retry(lambda q=query: yf.Search(
                 query=q,
-                news_count=limit,
+                news_count=5,
                 enable_fuzzy_query=True,
             ))
 
@@ -152,9 +154,6 @@ def get_global_news_yfinance(
                     if title and title not in seen_titles:
                         seen_titles.add(title)
                         all_news.append(article)
-
-            if len(all_news) >= limit:
-                break
 
         if not all_news:
             return f"No global news found for {curr_date}"
