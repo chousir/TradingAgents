@@ -87,6 +87,8 @@ class MarketRegimeToolTests(unittest.TestCase):
         self.assertEqual(payload["as_of"], "2026-04-04")
         self.assertEqual(payload["window_days"], 7)
         self.assertEqual(len(payload["signal_trend"]), 7)
+        self.assertIn("market_session", payload["signal_trend"][0])
+        self.assertEqual(payload["signal_trend"][0]["market_session"]["status"], "closed_weekend")
         self.assertEqual(payload["signal_trend"][0]["foreign_taiex_oi_net"], 25_000)
         self.assertEqual(payload["signal_trend"][0]["spot_net_buy_sell"]["foreign"], 10_000_000)
 

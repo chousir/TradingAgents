@@ -44,6 +44,39 @@ def _parse_trade_date(curr_date: str) -> datetime:
     return datetime.strptime(curr_date, "%Y-%m-%d")
 
 
+def _infer_market_session(day: str, day_schema: dict[str, Any]) -> dict[str, Any]:
+    day_dt = _parse_trade_date(day)
+    is_weekend = day_dt.weekday() >= 5
+
+    signals = day_schema.get("signals", {})
+    spot = signals.get("spot_net_buy_sell") or {}
+    has_twse_flow = any(
+        _to_int(spot.get(key)) is not None for key in ["foreign", "investment_trust", "dealer"]
+    )
+    has_taifex_oi = _to_int(signals.get("taiex_futures_foreign_oi_net")) is not None
+    has_tw_exchange_data = has_twse_flow or has_taifex_oi
+
+    if is_weekend:
+        return {
+            "is_trading_day": False,
+            "status": "closed_weekend",
+            "note": "TW market is closed on weekends; missing TWSE/TAIFEX daily flow is expected.",
+        }
+
+    if not has_tw_exchange_data:
+        return {
+            "is_trading_day": False,
+            "status": "closed_or_holiday",
+            "note": "No TWSE/TAIFEX daily flow published for this date; likely market holiday or non-trading day.",
+        }
+
+    return {
+        "is_trading_day": True,
+        "status": "open",
+        "note": "TW market session data available.",
+    }
+
+
 def _to_int(value: Any) -> Optional[int]:
     if value is None:
         return None
@@ -945,9 +978,11 @@ def get_market_regime_summary(curr_date: str) -> str:
         day = (base_date - timedelta(days=offset)).strftime("%Y-%m-%d")
         day_schema = collect_analyst_market_regime_schema(day)
         day_signals = day_schema.get("signals", {})
+        market_session = _infer_market_session(day, day_schema)
         history_rows.append(
             {
                 "date": day,
+                "market_session": market_session,
                 "foreign_taiex_oi_net": _to_int(day_signals.get("taiex_futures_foreign_oi_net")),
                 "spot_net_buy_sell": {
                     "foreign": _to_int((day_signals.get("spot_net_buy_sell") or {}).get("foreign")),

@@ -235,6 +235,48 @@ def _truncate_text_by_lines(
     return "\n".join(result_lines)
 
 
+def _looks_truncated_report(text: str) -> bool:
+    """Detect obvious report truncation or abrupt endings."""
+    stripped = (text or "").rstrip()
+    if not stripped:
+        return True
+    if stripped.endswith("... [truncated]"):
+        return True
+
+    tail = stripped.splitlines()[-1].strip()
+    if not tail:
+        return True
+
+    # Handle Markdown formatting in the final line, e.g. "**Risks and Considerations:**"
+    # so structural endings are still detected as incomplete.
+    tail_plain = re.sub(r"[*_`#>]", "", tail).strip()
+    if re.fullmatch(r"[*_`\s]*\*\*[^*]+:\*\*[*_`\s]*", tail):
+        return True
+
+    if tail.endswith((":", "-", "•", "/", "(", "[", ",")):
+        return True
+
+    if tail_plain.endswith((":", "-", "•", "/", "(", "[", ",")):
+        return True
+
+    if tail.lower().startswith(("and ", "or ", "but ", "if ", "to ", "with ")):
+        return True
+
+    # Paragraph-like ending without terminal punctuation is usually an incomplete cut.
+    # Keep this conservative: require multiple words and exclude common markdown/table lines.
+    is_markdown_row = tail_plain.startswith(("|", "- ", "* ", "#"))
+    has_terminal_punct = tail_plain.endswith((".", "!", "?"))
+    if not is_markdown_row and not has_terminal_punct and len(tail_plain.split()) >= 4:
+        return True
+
+    return False
+
+
+def _has_end_of_report(text: str) -> bool:
+    """Check whether the explicit end marker is present."""
+    return bool(re.search(r"(?mi)^\s*END OF REPORT\s*$", text or ""))
+
+
 def _parse_json_array(raw: str) -> list | None:
     """
     Try multiple strategies to extract a JSON array from raw text.
@@ -514,7 +556,14 @@ class GeminiCliModel:
                     output = f"Tool '{name}' failed after retries: {exc}"
                     logger.error(f"[GeminiCLI] ❌ {name} error: {exc}")
 
-                text = _truncate_text_by_lines(str(output), max_chars=8000, max_lines=200)
+                max_chars = 12000
+                max_lines = 250
+                if name in ("get_news", "get_global_news"):
+                    # News payloads are often long; cap tighter to reduce synthesis token pressure.
+                    max_chars = 8000
+                    max_lines = 160
+
+                text = _truncate_text_by_lines(str(output), max_chars=max_chars, max_lines=max_lines)
                 results.append(
                     f"### Tool Result: {name}\n"
                     f"Arguments: {json.dumps(call_args, ensure_ascii=False)}\n"
@@ -529,7 +578,9 @@ class GeminiCliModel:
             current_date = datetime.utcnow().strftime("%Y-%m-%d")
 
             if not tool_map:
-                return self.invoke(base_prompt)
+                no_tools_response = self.invoke(base_prompt)
+                no_tools_response.tool_calls = []  # Ensure clean return
+                return no_tools_response
 
             # Phase 1
             logger.info("[GeminiCLI] 🧠 Phase 1: Asking Gemini to select tools...")
@@ -545,7 +596,9 @@ class GeminiCliModel:
 
             if not tool_results:
                 logger.warning("[GeminiCLI] No tools executed; falling back to direct invoke.")
-                return self.invoke(base_prompt)
+                fallback_response = self.invoke(base_prompt)
+                fallback_response.tool_calls = []  # Ensure clean return
+                return fallback_response
 
             history_text = "\n\n".join(tool_results)
 
@@ -555,7 +608,8 @@ class GeminiCliModel:
                 "Write a comprehensive financial analysis report using ONLY the tool results below.\n"
                 "Include specific numbers, metrics, and actionable insights.\n"
                 "Do NOT mention tool names, infrastructure, or commands.\n"
-                "End with a Markdown summary table if relevant.\n\n"
+                "End with a Markdown summary table if relevant.\n"
+                "If the report is a final analyst deliverable, end with the exact line: END OF REPORT.\n\n"
                 f"Tool Results:\n{history_text}"
             )
 
@@ -570,8 +624,52 @@ class GeminiCliModel:
                     "No tool names, agent internals, or commands.\n\n"
                     f"Tool Results:\n{history_text}"
                 )
-                return self.invoke(retry_prompt)
+                retry_response = self.invoke(retry_prompt)
+                retry_response.tool_calls = []  # Ensure clean return
+                return retry_response
 
+            if _looks_truncated_report(text):
+                logger.info("[GeminiCLI] ✂️ Truncated ending detected; asking Gemini to finish cleanly...")
+                repair_prompt = (
+                    "Finish this report from the last complete thought.\n"
+                    "Do not repeat earlier content and do not add new claims.\n"
+                    "End with the exact final line: END OF REPORT\n\n"
+                    f"Current draft:\n{text}"
+                )
+                try:
+                    repaired = self.invoke(repair_prompt)
+                    repaired_text = (repaired.content or "").strip()
+                    
+                    if repaired_text:
+                        logger.info("[GeminiCLI] ✅ Report repair successful; returned complete version")
+                        response = repaired
+                        text = repaired_text
+                    else:
+                        logger.warning("[GeminiCLI] ⚠️  Repair returned empty; falling back to original")
+                except Exception as e:
+                    logger.warning(f"[GeminiCLI] ⚠️  Repair failed with error: {e}; returning original text")
+
+            # Hard completion guard, but only when output still looks incomplete.
+            final_text = (response.content or "").strip()
+            if final_text and _looks_truncated_report(final_text) and not _has_end_of_report(final_text):
+                logger.info("[GeminiCLI] 🧩 Still incomplete after synthesis; requesting one final pass...")
+                finalize_prompt = (
+                    "Complete this report ending naturally.\n"
+                    "Keep existing facts, do not add new claims.\n"
+                    "End with the exact final line: END OF REPORT\n\n"
+                    f"Draft report:\n{final_text}"
+                )
+                try:
+                    finalized = self.invoke(finalize_prompt)
+                    finalized_text = (finalized.content or "").strip()
+                    if finalized_text:
+                        finalized.tool_calls = []
+                        return finalized
+                except Exception as e:
+                    logger.warning(f"[GeminiCLI] ⚠️  Finalization pass failed: {e}; returning original text")
+
+            # Ensure tool_calls is empty (this is a final report, not a tool invocation request)
+            response.tool_calls = []
             return response
 
         return _runner

@@ -13,6 +13,17 @@ from tradingagents.agents.utils.agent_utils import (
 from tradingagents.dataflows.config import get_config
 
 
+def _normalize_keys(row: dict) -> dict:
+    """Normalize CSV row keys for cross-vendor compatibility."""
+    normalized = {}
+    for key, value in row.items():
+        if key is None:
+            continue
+        k = str(key).strip().lower().replace(" ", "").replace("_", "")
+        normalized[k] = value
+    return normalized
+
+
 def _extract_latest_close(stock_data_csv: str):
     lines = [line for line in stock_data_csv.splitlines() if line and not line.startswith("#")]
     if len(lines) < 2:
@@ -23,9 +34,13 @@ def _extract_latest_close(stock_data_csv: str):
     if not rows:
         return None, None
 
-    last_row = rows[-1]
-    latest_close = last_row.get("Close") or last_row.get("Adj Close")
-    latest_date = last_row.get("Date")
+    last_row = _normalize_keys(rows[-1])
+    latest_close = (
+        last_row.get("close")
+        or last_row.get("adjclose")
+        or last_row.get("adjustedclose")
+    )
+    latest_date = last_row.get("date") or last_row.get("timestamp")
 
     try:
         latest_close = float(latest_close) if latest_close not in (None, "") else None
@@ -53,9 +68,16 @@ def _summarize_price_structure(stock_data_csv: str):
         except (TypeError, ValueError):
             return None
 
-    closes = [_to_float(row.get("Close") or row.get("Adj Close")) for row in recent_rows]
-    highs = [_to_float(row.get("High")) for row in recent_rows]
-    lows = [_to_float(row.get("Low")) for row in recent_rows]
+    normalized_rows = [_normalize_keys(row) for row in recent_rows]
+
+    closes = [
+        _to_float(
+            row.get("close") or row.get("adjclose") or row.get("adjustedclose")
+        )
+        for row in normalized_rows
+    ]
+    highs = [_to_float(row.get("high")) for row in normalized_rows]
+    lows = [_to_float(row.get("low")) for row in normalized_rows]
 
     closes = [value for value in closes if value is not None]
     highs = [value for value in highs if value is not None]
@@ -158,6 +180,8 @@ Output must include:
 - Finish with a short markdown table summarizing the scenarios.
 
 Keep the output concise, numeric, and trader-ready. Do not write the final portfolio decision; leave that to the Trader and Portfolio Manager."""
+    + f"\nHard data cutoff: never reference dates after {current_date}."
+    + "\nKeep output compact and complete; always end with the exact line: END OF REPORT."
         + get_language_instruction()
     )
 
