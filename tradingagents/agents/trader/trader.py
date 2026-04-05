@@ -13,12 +13,13 @@ def create_trader(llm, memory):
         latest_close_price = state.get("latest_close_price")
         latest_close_date = state.get("latest_close_date")
         price_structure = state.get("price_structure", {})
+        macro_report = state.get("macro_report", "")
         market_research_report = state["market_report"]
         sentiment_report = state["sentiment_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
 
-        curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
+        curr_situation = f"{macro_report}\n\n{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
         past_memories = memory.get_memories(curr_situation, n_matches=2)
 
         past_memory_str = ""
@@ -30,7 +31,7 @@ def create_trader(llm, memory):
 
         context = {
             "role": "user",
-            "content": f"Based on a comprehensive analysis by a team of analysts, here is the full decision context for {company_name}. {instrument_context} Use the analyst reports below as the factual basis for your price levels, risk levels, and tranche sizing. If you cannot derive an exact price, provide the best support/resistance-based estimate and state the assumption clearly.\n\nLatest Available Close Price: {latest_close_price if latest_close_price is not None else 'Unavailable'}\nLatest Available Close Date: {latest_close_date if latest_close_date else 'Unavailable'}\nPrice Structure Summary: {price_structure if price_structure else 'Unavailable'}\n\nMarket Report:\n{market_research_report}\n\nSentiment Report:\n{sentiment_report}\n\nNews Report:\n{news_report}\n\nFundamentals Report:\n{fundamentals_report}\n\nProposed Investment Plan:\n{investment_plan}\n\nLeverage these insights to make an informed and strategic decision.",
+            "content": f"Based on a comprehensive analysis by a team of analysts, here is the full decision context for {company_name}. {instrument_context} Use the analyst reports below as the factual basis for your price levels, risk levels, and tranche sizing. If you cannot derive an exact price, provide the best support/resistance-based estimate and state the assumption clearly.\n\nLatest Available Close Price: {latest_close_price if latest_close_price is not None else 'Unavailable'}\nLatest Available Close Date: {latest_close_date if latest_close_date else 'Unavailable'}\nPrice Structure Summary: {price_structure if price_structure else 'Unavailable'}\n\nMacro Regime Report:\n{macro_report}\n\nMarket Report:\n{market_research_report}\n\nSentiment Report:\n{sentiment_report}\n\nNews Report:\n{news_report}\n\nFundamentals Report:\n{fundamentals_report}\n\nProposed Investment Plan:\n{investment_plan}\n\nLeverage these insights to make an informed and strategic decision.",
         }
 
         messages = [

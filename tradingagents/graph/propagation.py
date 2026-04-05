@@ -48,6 +48,7 @@ class Propagator:
                 }
             ),
             "market_report": "",
+            "macro_report": "",
             "latest_close_price": None,
             "latest_close_date": "",
             "price_structure": {},

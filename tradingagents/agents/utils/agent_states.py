@@ -54,6 +54,7 @@ class AgentState(MessagesState):
     sender: Annotated[str, "Agent that sent this message"]
 
     # research step
+    macro_report: Annotated[str, "Report from the Macro / Market Regime Analyst"]
     market_report: Annotated[str, "Report from the Market Analyst"]
     latest_close_price: Annotated[float, "Latest available close price from market data"]
     latest_close_date: Annotated[str, "Date for the latest available close price"]

@@ -51,6 +51,7 @@ class MessageBuffer:
 
     # Analyst name mapping
     ANALYST_MAPPING = {
+        "macro": "Macro Regime Analyst",
         "market": "Market Analyst",
         "news": "News Analyst",
         "fundamentals": "Fundamentals Analyst",
@@ -60,6 +61,7 @@ class MessageBuffer:
     # analyst_key: which analyst selection controls this section (None = always included)
     # finalizing_agent: which agent must be "completed" for this report to count as done
     REPORT_SECTIONS = {
+        "macro_report": ("macro", "Macro Regime Analyst"),
         "market_report": ("market", "Market Analyst"),
         "news_report": ("news", "News Analyst"),
         "fundamentals_report": ("fundamentals", "Fundamentals Analyst"),
@@ -167,6 +169,7 @@ class MessageBuffer:
         if latest_section and latest_content:
             # Format the current section for display
             section_titles = {
+                "macro_report": "Macro Regime Analysis",
                 "market_report": "Market Analysis",
                 "news_report": "News Analysis",
                 "fundamentals_report": "Fundamentals Analysis",
@@ -185,9 +188,13 @@ class MessageBuffer:
         report_parts = []
 
         # Analyst Team Reports - use .get() to handle missing sections
-        analyst_sections = ["market_report", "news_report", "fundamentals_report"]
+        analyst_sections = ["macro_report", "market_report", "news_report", "fundamentals_report"]
         if any(self.report_sections.get(section) for section in analyst_sections):
             report_parts.append("## Analyst Team Reports")
+            if self.report_sections.get("macro_report"):
+                report_parts.append(
+                    f"### Macro Regime Analysis\n{self.report_sections['macro_report']}"
+                )
             if self.report_sections.get("market_report"):
                 report_parts.append(
                     f"### Market Analysis\n{self.report_sections['market_report']}"
@@ -275,6 +282,7 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
     # Group agents by team - filter to only include agents in agent_status
     all_teams = {
         "Analyst Team": [
+            "Macro Regime Analyst",
             "Market Analyst",
             "News Analyst",
             "Fundamentals Analyst",
@@ -635,6 +643,10 @@ def save_report_to_disk(final_state, ticker: str, save_path: Path):
     # 1. Analysts
     analysts_dir = save_path / "1_analysts"
     analyst_parts = []
+    if final_state.get("macro_report"):
+        analysts_dir.mkdir(exist_ok=True)
+        (analysts_dir / "macro.md").write_text(final_state["macro_report"])
+        analyst_parts.append(("Macro Regime Analyst", final_state["macro_report"]))
     if final_state.get("market_report"):
         analysts_dir.mkdir(exist_ok=True)
         (analysts_dir / "market.md").write_text(final_state["market_report"])
@@ -720,6 +732,8 @@ def display_complete_report(final_state):
 
     # I. Analyst Team Reports
     analysts = []
+    if final_state.get("macro_report"):
+        analysts.append(("Macro Regime Analyst", final_state["macro_report"]))
     if final_state.get("market_report"):
         analysts.append(("Market Analyst", final_state["market_report"]))
     if final_state.get("news_report"):
@@ -780,13 +794,15 @@ def update_research_team_status(status):
 
 
 # Ordered list of analysts for status transitions
-ANALYST_ORDER = ["market", "news", "fundamentals"]
+ANALYST_ORDER = ["macro", "market", "news", "fundamentals"]
 ANALYST_AGENT_NAMES = {
+    "macro": "Macro Regime Analyst",
     "market": "Market Analyst",
     "news": "News Analyst",
     "fundamentals": "Fundamentals Analyst",
 }
 ANALYST_REPORT_MAP = {
+    "macro": "macro_report",
     "market": "market_report",
     "news": "news_report",
     "fundamentals": "fundamentals_report",

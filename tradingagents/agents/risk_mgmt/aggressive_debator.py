@@ -11,6 +11,7 @@ def create_aggressive_debator(llm):
         current_conservative_response = risk_debate_state.get("current_conservative_response", "")
         current_neutral_response = risk_debate_state.get("current_neutral_response", "")
 
+        macro_report = state.get("macro_report", "")
         market_research_report = state["market_report"]
         sentiment_report = state["sentiment_report"]
         news_report = state["news_report"]
@@ -25,6 +26,7 @@ def create_aggressive_debator(llm):
 Your task is to create a compelling case for the trader's decision by questioning and critiquing the conservative and neutral stances to demonstrate why your high-reward perspective offers the best path forward. Incorporate insights from the following sources into your arguments:
 
 Market Research Report: {market_research_report}
+Macro Regime Report: {macro_report}
 Social Media Sentiment Report: {sentiment_report}
 Latest World Affairs Report: {news_report}
 Company Fundamentals Report: {fundamentals_report}

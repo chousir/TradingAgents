@@ -8,13 +8,14 @@ def create_portfolio_manager(llm, memory):
 
         history = state["risk_debate_state"]["history"]
         risk_debate_state = state["risk_debate_state"]
+        macro_report = state.get("macro_report", "")
         market_research_report = state["market_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
         sentiment_report = state["sentiment_report"]
         trader_plan = state.get("trader_investment_plan", state.get("investment_plan", "No plan provided"))
 
-        curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
+        curr_situation = f"{macro_report}\n\n{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
         past_memories = memory.get_memories(curr_situation, n_matches=2)
 
         past_memory_str = ""

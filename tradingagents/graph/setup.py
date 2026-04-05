@@ -38,17 +38,18 @@ class GraphSetup:
         self.conditional_logic = conditional_logic
 
     def setup_graph(
-        self, selected_analysts=["market", "news", "fundamentals"]
+        self, selected_analysts=["macro", "market", "news", "fundamentals"]
     ):
         """Set up and compile the agent workflow graph.
 
         Args:
             selected_analysts (list): List of analyst types to include. Options are:
+                - "macro": Macro / market-regime analyst
                 - "market": Market analyst
                 - "news": News analyst
                 - "fundamentals": Fundamentals analyst
         """
-        selected_analysts = [a for a in selected_analysts if a in {"market", "news", "fundamentals"}]
+        selected_analysts = [a for a in selected_analysts if a in {"macro", "market", "news", "fundamentals"}]
 
         if len(selected_analysts) == 0:
             raise ValueError("Trading Agents Graph Setup Error: no analysts selected!")
@@ -57,6 +58,13 @@ class GraphSetup:
         analyst_nodes = {}
         delete_nodes = {}
         tool_nodes = {}
+
+        if "macro" in selected_analysts:
+            analyst_nodes["macro"] = create_macro_regime_analyst(
+                self.quick_thinking_llm
+            )
+            delete_nodes["macro"] = create_msg_delete()
+            tool_nodes["macro"] = self.tool_nodes["macro"]
 
         if "market" in selected_analysts:
             analyst_nodes["market"] = create_market_analyst(

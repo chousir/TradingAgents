@@ -11,6 +11,7 @@ def create_neutral_debator(llm):
         current_aggressive_response = risk_debate_state.get("current_aggressive_response", "")
         current_conservative_response = risk_debate_state.get("current_conservative_response", "")
 
+        macro_report = state.get("macro_report", "")
         market_research_report = state["market_report"]
         sentiment_report = state["sentiment_report"]
         news_report = state["news_report"]
@@ -25,6 +26,7 @@ def create_neutral_debator(llm):
 Your task is to challenge both the Aggressive and Conservative Analysts, pointing out where each perspective may be overly optimistic or overly cautious. Use insights from the following data sources to support a moderate, sustainable strategy to adjust the trader's decision:
 
 Market Research Report: {market_research_report}
+Macro Regime Report: {macro_report}
 Social Media Sentiment Report: {sentiment_report}
 Latest World Affairs Report: {news_report}
 Company Fundamentals Report: {fundamentals_report}

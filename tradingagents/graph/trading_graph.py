@@ -28,6 +28,10 @@ from tradingagents.agents.utils.agent_utils import (
     get_balance_sheet,
     get_cashflow,
     get_income_statement,
+    get_twse_market_breadth,
+    get_taifex_market_regime,
+    get_vix_fx_snapshot,
+    get_market_regime_summary,
     get_news,
     get_insider_transactions,
     get_global_news
@@ -158,6 +162,14 @@ class TradingAgentsGraph:
     def _create_tool_nodes(self) -> Dict[str, ToolNode]:
         """Create tool nodes for different data sources using abstract methods."""
         return {
+            "macro": ToolNode(
+                [
+                    get_market_regime_summary,
+                    get_twse_market_breadth,
+                    get_taifex_market_regime,
+                    get_vix_fx_snapshot,
+                ]
+            ),
             "market": ToolNode(
                 [
                     # Core stock data tools
@@ -225,6 +237,7 @@ class TradingAgentsGraph:
         self.log_states_dict[str(trade_date)] = {
             "company_of_interest": final_state["company_of_interest"],
             "trade_date": final_state["trade_date"],
+            "macro_report": final_state.get("macro_report", ""),
             "market_report": final_state["market_report"],
             "latest_close_price": final_state.get("latest_close_price"),
             "latest_close_date": final_state.get("latest_close_date"),
